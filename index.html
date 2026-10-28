@@ -53,18 +53,26 @@
     position:sticky; top:env(safe-area-inset-top,0px); z-index:15;
     background:var(--surface); border-bottom:1px solid var(--line);
   }
-  .head-in{display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;padding-block:18px}
-  .brand{display:flex;align-items:center;justify-content:center;gap:12px;min-width:0}
-  .logo{width:44px;height:44px;flex:none;border-radius:10px;background:
+  .head-in{display:flex;flex-direction:row;align-items:center;justify-content:space-between;
+    text-align:left;gap:16px;padding-block:10px}
+  .brand{display:flex;align-items:center;justify-content:flex-start;gap:11px;min-width:0}
+  .logo{width:36px;height:36px;flex:none;border-radius:9px;background:
     linear-gradient(135deg,color-mix(in srgb,var(--accent) 85%,#000),var(--accent));
     display:grid;place-items:center;color:#06121b}
-  .logo svg{width:26px;height:26px}
+  .logo svg{width:21px;height:21px}
   .brand-text{min-width:0}
-  .brand h1{font-size:1.6rem;margin:0;font-weight:700;letter-spacing:.2px;text-wrap:balance}
-  .brand .sub{font-size:.8rem;color:var(--muted);margin:2px 0 0}
-  .head-meta{display:flex;align-items:center;justify-content:center;gap:12px}
-  .clock{font-family:var(--font-data);font-size:.82rem;color:var(--muted);
+  .brand h1{font-size:1.25rem;margin:0;font-weight:700;letter-spacing:.2px;line-height:1.15}
+  .brand .sub{font-size:.74rem;color:var(--muted);margin:1px 0 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .head-meta{display:flex;align-items:center;gap:10px;flex:none}
+  .dt{display:flex;flex-direction:column;align-items:flex-end;line-height:1.25}
+  .date{font-family:var(--font-data);font-size:.72rem;color:var(--muted);white-space:nowrap}
+  .clock{font-family:var(--font-data);font-size:.84rem;color:var(--fg);
     font-variant-numeric:tabular-nums;white-space:nowrap}
+  @media (max-width:560px){
+    .brand h1{font-size:1.08rem}
+    .brand .sub{display:none}
+    .logo{width:32px;height:32px}
+  }
   .demo-chip{font-size:.66rem;letter-spacing:.4px;text-transform:uppercase;
     color:var(--warn);border:1px solid color-mix(in srgb,var(--warn) 45%,transparent);
     background:var(--warn-dim);padding:3px 8px;border-radius:999px;white-space:nowrap}
@@ -244,9 +252,47 @@
   .m-chart svg{width:100%;height:auto;display:block}
   .m-chart text{font-size:11px;fill:var(--muted);font-family:var(--font-data)}
   .m-chart .grid{stroke:var(--line);stroke-width:1}
+  .m-chart .chg-band{fill:var(--accent);opacity:.10}
+  .m-chart .chg-bolt{font-size:13px;fill:var(--accent)}
+  .m-chart .chg-leg{font-size:11px;fill:var(--accent);font-family:var(--font-ui)}
+  .card.is-charging .pct{opacity:.42}
+  .card.is-charging .bar>i{opacity:.5}
   .m-stats{display:flex;gap:16px;flex-wrap:wrap;margin-top:14px;font-size:.82rem;color:var(--muted);font-family:var(--font-data)}
   .m-stats b{color:var(--fg);font-weight:600}
   .m-loading{color:var(--muted);font-size:.85rem;text-align:center;padding:48px 0}
+  .head-tools{display:flex;align-items:center;gap:6px}
+  .cal-btn{border:1px solid var(--line);background:var(--surface-2);color:var(--muted);cursor:pointer;
+    width:34px;height:30px;border-radius:8px;display:grid;place-items:center}
+  .cal-btn svg{width:17px;height:17px}
+  .cal-btn:hover{color:var(--fg)}
+  .cal-pop{position:absolute;right:18px;top:60px;z-index:8;background:var(--surface);border:1px solid var(--line);
+    border-radius:12px;box-shadow:0 12px 36px rgba(0,0,0,.4);padding:12px;width:258px}
+  .cal-pop[hidden]{display:none}
+  .cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+  .cal-title{font-size:.86rem;font-weight:700}
+  .cal-nav{border:0;background:transparent;color:var(--fg);cursor:pointer;font-size:1.15rem;line-height:1;
+    width:28px;height:28px;border-radius:6px}
+  .cal-nav:hover:not(:disabled){background:var(--surface-2)}
+  .cal-nav:disabled{color:var(--muted);opacity:.35;cursor:default}
+  .cal-dow{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:4px}
+  .cal-dow span{text-align:center;font-size:.6rem;color:var(--muted);font-weight:600}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+  .cal-cell{position:relative;aspect-ratio:1;border:0;background:transparent;color:var(--fg);cursor:pointer;
+    border-radius:7px;font-size:.78rem;font-family:var(--font-ui);display:grid;place-items:center}
+  .cal-cell.empty{visibility:hidden}
+  .cal-cell:hover:not(.disabled){background:var(--surface-2)}
+  .cal-cell.disabled{color:var(--muted);opacity:.3;cursor:default}
+  .cal-cell.sel{background:var(--accent);color:#06121b;font-weight:700}
+  .cal-cell .dot{position:absolute;bottom:3px;left:50%;transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:var(--accent)}
+  .cal-cell.sel .dot{background:#06121b}
+  .cal-hint{margin:8px 0 0;font-size:.64rem;color:var(--muted);text-align:center}
+  .day-banner{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px;
+    font-size:.82rem;color:var(--muted);background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:8px 12px}
+  .day-banner[hidden]{display:none}
+  .day-banner b{color:var(--fg);font-weight:600}
+  .day-back{border:1px solid var(--line);background:transparent;color:var(--fg);cursor:pointer;
+    font-family:var(--font-ui);font-size:.76rem;padding:5px 10px;border-radius:7px;white-space:nowrap}
+  .day-back:hover{background:var(--surface)}
 </style>
 
 <header>
@@ -263,7 +309,10 @@
       </div>
       <div class="head-meta">
         <span class="demo-chip" id="demoChip">Demo mode</span>
-        <span class="clock" id="clock">—</span>
+        <div class="dt">
+          <span class="date" id="dateNow">—</span>
+          <span class="clock" id="clock">—</span>
+        </div>
       </div>
     </div>
     <div class="wrap" style="padding:0">
@@ -305,12 +354,22 @@
   <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="mTitle">
     <div class="modal-head">
       <h3 id="mTitle">—</h3>
-      <button class="icon-btn" id="mClose" aria-label="Close">✕</button>
+      <div class="head-tools">
+        <button class="cal-btn" id="calBtn" aria-label="Pick a day" title="Pick a day">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+        </button>
+        <button class="icon-btn" id="mClose" aria-label="Close">✕</button>
+      </div>
     </div>
+    <div class="cal-pop" id="calPop" hidden></div>
     <div class="range-tabs" id="rangeTabs">
       <button data-range="24" class="active">24h</button>
       <button data-range="48">48h</button>
       <button data-range="72">72h</button>
+    </div>
+    <div class="day-banner" id="dayBanner" hidden>
+      <span>Showing <b></b></span>
+      <button class="day-back" data-act="recent">← Back to recent</button>
     </div>
     <div id="mChart" class="m-chart"></div>
     <div id="mStats" class="m-stats"></div>
@@ -363,6 +422,17 @@ function statusOf(pct){
   return            {key:"crit", label:"Charge now",  color:"var(--crit)",dim:"var(--crit-dim)"};
 }
 
+/* ---------- Charging detection (voltage-only) ----------
+   A charger pushes voltage well above anything a battery reaches at rest,
+   so "voltage above the charge threshold" marks an on-charger period.
+   lead-acid full rest ≈ 1.06×nominal, float ≈ 1.13×nominal → 1.10× separates them. */
+const CHARGE_ST={key:"charge",label:"⚡ Charging",color:"var(--accent)",dim:"color-mix(in srgb,var(--accent) 16%,transparent)"};
+function chargeThreshold(b){ return b.chem==="lifepo4" ? b.nominal*1.12 : b.nominal*1.10; }
+function chargingNow(b){
+  const p=sparkPoints(b.id); if(!p.length) return false;
+  return p[p.length-1].v >= chargeThreshold(b);
+}
+
 /* ---------- Live sparkline: last 6 minutes, one point per minute ----------
    The node sends one reading per minute, so the window holds ~7 points and
    the segments between them are straight (no sub-minute data). */
@@ -382,10 +452,13 @@ function sparkPoints(id){
 
 /* ---------- 72h history (generated for the demo) ---------- */
 function genHist72(b){
-  const full=b.nominal*1.06, low=b.nominal*1.00, arr=[];
+  const full=b.nominal*1.06, low=b.nominal*1.00, chg=chargeThreshold(b)*1.03, arr=[];
   for(let h=0;h<72;h++){
     const p=h%24;
-    let v = p<16 ? full-(full-low)*(p/16) : low+(full-low)*((p-16)/8);
+    let v;
+    if(p<16)       v = full-(full-low)*(p/16);   // daytime use: full → low
+    else if(p<22)  v = chg;                      // nightly charge: elevated (charging band)
+    else           v = full;                     // after charge: back to full at rest
     v += (Math.random()*0.2-0.1);
     arr.push(v);
   }
@@ -461,11 +534,11 @@ function renderCards(){
   const host=document.getElementById("cards");
   const sparkLabels=`<div class="spark-labels">${[6,5,4,3,2,1,0].map(a=>`<span>${a===0?"now":"-"+a+"m"}</span>`).join("")}</div>`;
   host.innerHTML=STACKERS.map(b=>{
-    const pct=percentOf(b), st=statusOf(pct);
+    const pct=percentOf(b), charging=chargingNow(b), st=charging?CHARGE_ST:statusOf(pct);
     const _pts=sparkPoints(b.id), _vs=_pts.map(p=>p.v);
     const _mn=Math.min(..._vs), _mx=Math.max(..._vs);
     const smx=_mx.toFixed(1), smn=_mn.toFixed(1), smid=((_mn+_mx)/2).toFixed(1);
-    return `<article class="card" id="card-${b.id}" style="--st-color:${st.color};--st-dim:${st.dim}">
+    return `<article class="card${charging?" is-charging":""}" id="card-${b.id}" style="--st-color:${st.color};--st-dim:${st.dim}">
       <div class="c-name">
         <img class="st-img" src="${b.img}" alt="${b.model}">
         <div class="st-text">
@@ -509,7 +582,8 @@ function renderCards(){
 function updateCards(){
   STACKERS.forEach(b=>{
     const c=cardEls[b.id]; if(!c)return;
-    const pct=percentOf(b), st=statusOf(pct);
+    const pct=percentOf(b), charging=chargingNow(b), st=charging?CHARGE_ST:statusOf(pct);
+    c.card.classList.toggle("is-charging",charging);
     c.card.style.setProperty("--st-color",st.color);
     c.card.style.setProperty("--st-dim",st.dim);
     c.pct.innerHTML=`${pct}<small>%</small>`;
@@ -678,8 +752,10 @@ document.querySelectorAll(".tab").forEach(t=>t.addEventListener("click",()=>setV
 /* ---------- Clock ---------- */
 function tickClock(){
   const now=new Date();
-  document.getElementById("clock").textContent=
-    now.toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit",second:"2-digit"});
+  const c=document.getElementById("clock");
+  if(c) c.textContent=now.toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit",second:"2-digit"});
+  const d=document.getElementById("dateNow");
+  if(d) d.textContent=now.toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"});
 }
 
 /* ---------- Demo simulation ---------- */
@@ -724,29 +800,57 @@ async function postService(id,rec){
 }
 
 /* ---------- Detail chart (modal) ---------- */
-function drawChart(points,rangeHours,color){
+function fmtDur(ms){
+  const m=Math.round(ms/60000), h=Math.floor(m/60), mm=m%60;
+  if(h>0 && mm>0) return `${h}h ${mm}m`;
+  if(h>0) return `${h}h`;
+  return `${mm}m`;
+}
+function drawChart(points, tStart, tEnd, color, mode, caption, chargeV){
   const W=900,H=272,ml=46,mr=16,mt=16,mb=44,pw=W-ml-mr,ph=H-mt-mb;
-  const now=Date.now(), tStart=now-rangeHours*3600000, span=rangeHours*3600000;
+  const span=(tEnd-tStart)||1;
   const vs=points.map(p=>p.v);
   let mn=Math.min(...vs),mx=Math.max(...vs);
   if(!isFinite(mn)){mn=0;mx=1;}
   if(mn===mx){mn-=0.5;mx+=0.5;}
   const pad=(mx-mn)*0.15||0.5; mn-=pad; mx+=pad;
   const X=t=>ml+((t-tStart)/span)*pw, Y=v=>mt+ph-((v-mn)/(mx-mn))*ph;
+  const hours=Math.max(1,Math.round(span/3600000));
   let minor="";
-  for(let h=0;h<=rangeHours;h++){ const x=X(now-h*3600000); minor+=`<line class="grid-minor" x1="${x.toFixed(1)}" y1="${mt}" x2="${x.toFixed(1)}" y2="${(mt+ph).toFixed(1)}"/>`; }
+  for(let h=0;h<=hours;h++){ const x=X(tStart+h*3600000); minor+=`<line class="grid-minor" x1="${x.toFixed(1)}" y1="${mt}" x2="${x.toFixed(1)}" y2="${(mt+ph).toFixed(1)}"/>`; }
   let grid="",ylab="";
   for(let k=0;k<=4;k++){
     const val=mn+(mx-mn)*k/4, y=Y(val);
     grid+=`<line class="grid" x1="${ml}" y1="${y.toFixed(1)}" x2="${W-mr}" y2="${y.toFixed(1)}"/>`;
     ylab+=`<text x="${ml-8}" y="${(y+4).toFixed(1)}" text-anchor="end">${val.toFixed(1)}</text>`;
   }
-  const lstep=Math.max(1,Math.ceil(rangeHours/24)); let xlab="";
-  for(let ago=0; ago<=rangeHours; ago+=lstep){
-    const x=X(now-ago*3600000);
-    xlab+=`<text class="xl" x="${x.toFixed(1)}" y="${(H-26).toFixed(1)}" text-anchor="middle">${ago===0?"now":"-"+ago+"h"}</text>`;
+  const lstep = mode==="clock" ? 3 : Math.max(1,Math.ceil(hours/24));
+  let xlab="";
+  for(let h=0; h<=hours; h+=lstep){
+    const t=tStart+h*3600000, x=X(t);
+    let lbl;
+    if(mode==="clock"){ const d=new Date(t); lbl=String(d.getHours()).padStart(2,"0")+":00"; }
+    else { const ago=hours-h; lbl = ago===0?"now":"-"+ago+"h"; }
+    xlab+=`<text class="xl" x="${x.toFixed(1)}" y="${(H-26).toFixed(1)}" text-anchor="middle">${lbl}</text>`;
   }
-  xlab+=`<text class="xcap" x="${(ml+pw/2).toFixed(1)}" y="${(H-8).toFixed(1)}" text-anchor="middle">hours ago</text>`;
+  xlab+=`<text class="xcap" x="${(ml+pw/2).toFixed(1)}" y="${(H-8).toFixed(1)}" text-anchor="middle">${caption||""}</text>`;
+  // charging bands: shade spans where voltage sits in the charge zone
+  let shade="", legend="";
+  if(chargeV){
+    for(let i=0;i<points.length;){
+      if(points[i].v>=chargeV){
+        let j=i; while(j+1<points.length && points[j+1].v>=chargeV) j++;
+        const x1=X(points[i].t), x2=X(points[j].t);
+        const rx=Math.max(ml,x1-2), rw=Math.max(3,(x2-x1)+4);
+        const durMs=points[j].t-points[i].t;
+        const durLbl=durMs>=60000?` ${fmtDur(durMs)}`:"";
+        shade+=`<rect class="chg-band" x="${rx.toFixed(1)}" y="${mt}" width="${rw.toFixed(1)}" height="${ph.toFixed(1)}"/>`;
+        shade+=`<text class="chg-bolt" x="${(x1+5).toFixed(1)}" y="${(mt+15).toFixed(1)}">⚡${durLbl}</text>`;
+        i=j+1;
+      } else i++;
+    }
+    if(shade) legend=`<text class="chg-leg" x="${(W-mr).toFixed(1)}" y="${(mt+12).toFixed(1)}" text-anchor="end">⚡ charging</text>`;
+  }
   const P=points.map(p=>[X(p.t),Y(p.v)]);
   let body="";
   if(P.length>=2){
@@ -756,52 +860,146 @@ function drawChart(points,rangeHours,color){
   }
   const last=P.length?`<circle cx="${P[P.length-1][0].toFixed(1)}" cy="${P[P.length-1][1].toFixed(1)}" r="3.5" fill="${color}"/>`:"";
   return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Voltage over time">
-    ${minor}${grid}${body}${last}${ylab}${xlab}
+    ${minor}${grid}${shade}${body}${last}${ylab}${xlab}${legend}
   </svg>`;
 }
-let modalState={id:null,range:24};
+let modalState={id:null,range:24,day:null};
 let modalReq=0;
+let calMonth=new Date(); calMonth.setDate(1);
+let daysSet=new Set();
 async function renderModal(){
   const b=STACKERS.find(s=>s.id===modalState.id); if(!b)return;
   const st=statusOf(percentOf(b));
   const reqId=++modalReq;
   document.getElementById("mTitle").textContent=`${b.name} · ${b.model}`;
   const chartEl=document.getElementById("mChart"), statsEl=document.getElementById("mStats");
-  let pts;
-  if(LIVE_MODE){
-    chartEl.innerHTML=`<p class="m-loading">Loading…</p>`; statsEl.innerHTML="";
-    pts=await fetchHistory(b.id, modalState.range);
-    if(reqId!==modalReq) return;            // a newer request superseded this one
+  const banner=document.getElementById("dayBanner");
+  let pts, tStart, tEnd, mode, caption;
+  if(modalState.day){
+    const [Y,M,D]=modalState.day.split("-").map(Number);
+    const ds=new Date(Y, M-1, D, 0,0,0,0);          // local midnight of the chosen day
+    tStart=ds.getTime(); tEnd=tStart+24*3600000; mode="clock";
+    caption=ds.toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric",year:"numeric"});
+    banner.hidden=false; banner.querySelector("b").textContent=caption;
+    if(LIVE_MODE){
+      chartEl.innerHTML=`<p class="m-loading">Loading…</p>`; statsEl.innerHTML="";
+      pts=await fetchRange(b.id, tStart, tEnd);
+      if(reqId!==modalReq) return;
+    }else pts=demoDay(b, tStart);
   }else{
-    const now=Date.now(), vals=HIST72[b.id], n=vals.length, start=Math.max(0,n-modalState.range);
-    pts=[]; for(let j=start;j<n;j++) pts.push({t:now-(n-1-j)*3600000, v:vals[j]});
+    tEnd=Date.now(); tStart=tEnd-modalState.range*3600000; mode="ago"; caption="hours ago";
+    banner.hidden=true;
+    if(LIVE_MODE){
+      chartEl.innerHTML=`<p class="m-loading">Loading…</p>`; statsEl.innerHTML="";
+      pts=await fetchRange(b.id, tStart, tEnd);
+      if(reqId!==modalReq) return;            // a newer request superseded this one
+    }else{
+      pts=demoHistory(b, modalState.range);
+    }
   }
+  document.querySelectorAll("#rangeTabs button").forEach(x=>x.classList.toggle("active", !modalState.day && +x.dataset.range===modalState.range));
   if(!pts||!pts.length){
-    chartEl.innerHTML=`<p class="m-loading">No readings yet for this range.</p>`; statsEl.innerHTML="";
+    chartEl.innerHTML=`<p class="m-loading">No readings for this ${modalState.day?"day":"range"}.</p>`; statsEl.innerHTML="";
     return;
   }
-  chartEl.innerHTML=drawChart(pts, modalState.range, st.color);
+  chartEl.innerHTML=drawChart(pts, tStart, tEnd, st.color, mode, caption, chargeThreshold(b));
   const vs=pts.map(p=>p.v), mn=Math.min(...vs), mx=Math.max(...vs), nv=pts[pts.length-1].v;
   statsEl.innerHTML=
-    `<span>Now <b>${nv.toFixed(2)} V</b></span><span>Min <b>${mn.toFixed(2)} V</b></span><span>Max <b>${mx.toFixed(2)} V</b></span><span>Swing <b>${(mx-mn).toFixed(2)} V</b></span>`;
+    `<span>${modalState.day?"Last":"Now"} <b>${nv.toFixed(2)} V</b></span><span>Min <b>${mn.toFixed(2)} V</b></span><span>Max <b>${mx.toFixed(2)} V</b></span><span>Swing <b>${(mx-mn).toFixed(2)} V</b></span>`;
 }
-async function fetchHistory(id, hours){
+async function fetchRange(id, sinceMs, untilMs){
   try{
-    const since=new Date(Date.now()-hours*3600000).toISOString();
-    const r=await fetch(`${SUPABASE_URL}/rest/v1/readings?stacker_id=eq.${id}&created_at=gte.${encodeURIComponent(since)}&select=voltage,created_at&order=created_at.asc`,{
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/readings?stacker_id=eq.${id}&created_at=gte.${encodeURIComponent(new Date(sinceMs).toISOString())}&created_at=lt.${encodeURIComponent(new Date(untilMs).toISOString())}&select=voltage,created_at&order=created_at.asc&limit=5000`,{
       headers:{ apikey:SUPABASE_KEY, Authorization:"Bearer "+SUPABASE_KEY }
     });
     const rows=await r.json();
     return Array.isArray(rows)? rows.map(x=>({t:new Date(x.created_at).getTime(), v:Number(x.voltage)})) : [];
-  }catch(e){ console.warn("history fetch failed:",e); return []; }
+  }catch(e){ console.warn("range fetch failed:",e); return []; }
 }
-function openModal(id){
-  modalState={id:+id,range:24};
-  document.querySelectorAll("#rangeTabs button").forEach(x=>x.classList.toggle("active",+x.dataset.range===24));
+async function fetchDays(id){
+  try{
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/reading_days?stacker_id=eq.${id}&select=day&order=day.asc&limit=400`,{
+      headers:{ apikey:SUPABASE_KEY, Authorization:"Bearer "+SUPABASE_KEY }
+    });
+    const rows=await r.json();
+    return new Set(Array.isArray(rows)? rows.map(x=>x.day) : []);
+  }catch(e){ console.warn("days fetch failed:",e); return new Set(); }
+}
+// Rolling N-hour demo history at 15-min resolution, nightly charge 22:00–05:00.
+function demoHistory(b, hours){
+  const full=b.nominal*1.06, low=b.nominal*1.00, chg=chargeThreshold(b)*1.03;
+  const now=Date.now(), step=15*60000, n=Math.round(hours*4), pts=[];
+  for(let i=n;i>=0;i--){
+    const t=now-i*step, hr=new Date(t).getHours();
+    let v;
+    if(hr>=22 || hr<5)  v=chg;                       // nightly charge
+    else if(hr<8)       v=full;                       // morning rest
+    else                v=full-(full-low)*((hr-8)/14); // daytime use 08:00–22:00
+    pts.push({t, v:v+(Math.random()*0.18-0.09)});
+  }
+  pts[pts.length-1].v=b.v;
+  return pts;
+}
+// Single-day demo (00:00–24:00) at 15-min resolution, charge ~02:05–04:45.
+function demoDay(b, dayStartMs){
+  const full=b.nominal*1.06, low=b.nominal*1.00, chg=chargeThreshold(b)*1.03, pts=[];
+  const step=15*60000;
+  for(let i=0;i<=96;i++){
+    const t=dayStartMs+i*step, d=new Date(t), hr=d.getHours()+d.getMinutes()/60;
+    let v;
+    if(hr>=2.08 && hr<=4.75) v=chg;                  // early-morning charge
+    else if(hr<2)            v=low+0.1;              // pre-dawn low
+    else if(hr<8)            v=full;                 // rest after charge
+    else                     v=full-(full-low)*((hr-8)/16); // daytime use
+    pts.push({t, v:v+(Math.random()*0.16-0.08)});
+  }
+  return pts;
+}
+function fakeDemoDays(){
+  const s=new Set(), t=new Date(); t.setHours(0,0,0,0);
+  for(let i=0;i<62;i++){ const d=new Date(t); d.setDate(d.getDate()-i);
+    s.add(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`); }
+  return s;
+}
+function renderCalendar(){
+  const pop=document.getElementById("calPop");
+  const y=calMonth.getFullYear(), m=calMonth.getMonth();
+  const first=new Date(y,m,1);
+  const title=first.toLocaleDateString("en-US",{month:"long",year:"numeric"});
+  const today=new Date(); today.setHours(0,0,0,0);
+  const minDate=new Date(today); minDate.setMonth(minDate.getMonth()-3);
+  const startDow=first.getDay();
+  const dim=new Date(y,m+1,0).getDate();
+  const canPrev = first > new Date(minDate.getFullYear(),minDate.getMonth(),1);
+  const canNext = first < new Date(today.getFullYear(),today.getMonth(),1);
+  let cells="";
+  for(let i=0;i<startDow;i++) cells+=`<span class="cal-cell empty"></span>`;
+  for(let d=1; d<=dim; d++){
+    const date=new Date(y,m,d);
+    const iso=`${y}-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+    const inRange = date>=minDate && date<=today;
+    const hasData = daysSet.has(iso);
+    const sel = modalState.day===iso;
+    cells+=`<button class="cal-cell${inRange?"":" disabled"}${sel?" sel":""}" ${inRange?`data-day="${iso}"`:"disabled"}>${d}${(hasData&&inRange)?'<i class="dot"></i>':""}</button>`;
+  }
+  pop.innerHTML=`<div class="cal-head">
+      <button class="cal-nav" data-cal="prev"${canPrev?"":" disabled"} aria-label="Previous month">‹</button>
+      <span class="cal-title">${title}</span>
+      <button class="cal-nav" data-cal="next"${canNext?"":" disabled"} aria-label="Next month">›</button>
+    </div>
+    <div class="cal-dow"><span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span></div>
+    <div class="cal-grid">${cells}</div>
+    <p class="cal-hint">Blue dot = data available</p>`;
+}
+async function openModal(id){
+  modalState={id:+id, range:24, day:null};
+  calMonth=new Date(); calMonth.setDate(1);
+  document.getElementById("calPop").hidden=true;
+  daysSet = LIVE_MODE ? await fetchDays(+id) : fakeDemoDays();
   renderModal();
   document.getElementById("modal").hidden=false;
 }
-function closeModal(){ document.getElementById("modal").hidden=true; }
+function closeModal(){ document.getElementById("modal").hidden=true; const cp=document.getElementById("calPop"); if(cp)cp.hidden=true; }
 
 /* ---------- Boot ---------- */
 function boot(){
@@ -823,9 +1021,21 @@ function boot(){
   document.getElementById("mBackdrop").addEventListener("click",closeModal);
   document.getElementById("rangeTabs").addEventListener("click",e=>{
     const btn=e.target.closest("button[data-range]"); if(!btn)return;
-    modalState.range=+btn.dataset.range;
-    document.querySelectorAll("#rangeTabs button").forEach(x=>x.classList.toggle("active",x===btn));
+    modalState.range=+btn.dataset.range; modalState.day=null;
     renderModal();
+  });
+  document.getElementById("calBtn").addEventListener("click",e=>{ e.stopPropagation();
+    const pop=document.getElementById("calPop");
+    if(pop.hidden){ renderCalendar(); pop.hidden=false; } else pop.hidden=true;
+  });
+  document.getElementById("calPop").addEventListener("click",e=>{
+    const nav=e.target.closest("[data-cal]");
+    if(nav){ calMonth.setMonth(calMonth.getMonth()+(nav.dataset.cal==="next"?1:-1)); renderCalendar(); return; }
+    const day=e.target.closest("[data-day]");
+    if(day){ modalState.day=day.dataset.day; document.getElementById("calPop").hidden=true; renderModal(); }
+  });
+  document.getElementById("dayBanner").addEventListener("click",e=>{
+    if(e.target.closest('[data-act="recent"]')){ modalState.day=null; renderModal(); }
   });
   document.addEventListener("keydown",e=>{ if(e.key==="Escape")closeModal(); });
   setView(h==="service"?"service":"live");
