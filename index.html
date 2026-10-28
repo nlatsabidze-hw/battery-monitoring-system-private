@@ -255,8 +255,8 @@
   .m-chart .chg-band{fill:var(--accent);opacity:.10}
   .m-chart .chg-bolt{font-size:13px;fill:var(--accent)}
   .m-chart .chg-leg{font-size:11px;fill:var(--accent);font-family:var(--font-ui)}
-  .card.is-charging .pct{opacity:.42}
-  .card.is-charging .bar>i{opacity:.5}
+  .card.is-charging .bar>i{opacity:.45}
+  .c-pct .dur{font-size:1.2rem;font-weight:700;letter-spacing:.3px;color:var(--st-color)}
   .m-stats{display:flex;gap:16px;flex-wrap:wrap;margin-top:14px;font-size:.82rem;color:var(--muted);font-family:var(--font-data)}
   .m-stats b{color:var(--fg);font-weight:600}
   .m-loading{color:var(--muted);font-size:.85rem;text-align:center;padding:48px 0}
@@ -411,11 +411,12 @@ function lerp(table,x){
   }
   return 0;
 }
-function percentOf(b){
-  if(b.chem==="lead")  return lerp(LEAD, b.v/(b.nominal/12));
-  if(b.chem==="lifepo4")return lerp(LIFE, b.v/Math.round(b.nominal/3.2));
+function pctFromV(b, v){
+  if(b.chem==="lead")  return lerp(LEAD, v/(b.nominal/12));
+  if(b.chem==="lifepo4")return lerp(LIFE, v/Math.round(b.nominal/3.2));
   return 0;
 }
+function percentOf(b){ return pctFromV(b, b.v); }
 function statusOf(pct){
   if(pct>=50)return {key:"ok",   label:"Good",        color:"var(--ok)",  dim:"var(--ok-dim)"};
   if(pct>=20)return {key:"warn", label:"Charge soon", color:"var(--warn)",dim:"var(--warn-dim)"};
@@ -431,6 +432,26 @@ function chargeThreshold(b){ return b.chem==="lifepo4" ? b.nominal*1.12 : b.nomi
 function chargingNow(b){
   const p=sparkPoints(b.id); if(!p.length) return false;
   return p[p.length-1].v >= chargeThreshold(b);
+}
+// While charging, voltage-based SoC is invalid, so the bar falls back to the last
+// resting SoC seen before the charge started (the most recent sub-threshold point).
+function restPctWhenCharging(b){
+  const p=sparkPoints(b.id), thr=chargeThreshold(b);
+  for(let i=p.length-1;i>=0;i--){ if(p[i].v<thr) return pctFromV(b, p[i].v); }
+  return null;
+}
+// How long a stacker has been charging: id -> ms when the current charge run began (live), or null.
+const chargeSince={};
+async function fetchChargeStart(b){
+  try{
+    const thr=chargeThreshold(b);
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/readings?stacker_id=eq.${b.id}&voltage=lt.${thr}&select=created_at&order=created_at.desc&limit=1`,{
+      headers:{ apikey:SUPABASE_KEY, Authorization:"Bearer "+SUPABASE_KEY }
+    });
+    const rows=await r.json();
+    if(Array.isArray(rows)&&rows.length) return new Date(rows[0].created_at).getTime();
+  }catch(e){ console.warn("charge-start fetch failed:",e); }
+  const p=sparkPoints(b.id); return p.length? p[0].t : Date.now();   // fallback: oldest point in window
 }
 
 /* ---------- Live sparkline: last 6 minutes, one point per minute ----------
@@ -535,6 +556,10 @@ function renderCards(){
   const sparkLabels=`<div class="spark-labels">${[6,5,4,3,2,1,0].map(a=>`<span>${a===0?"now":"-"+a+"m"}</span>`).join("")}</div>`;
   host.innerHTML=STACKERS.map(b=>{
     const pct=percentOf(b), charging=chargingNow(b), st=charging?CHARGE_ST:statusOf(pct);
+    const _rest = charging ? restPctWhenCharging(b) : pct;
+    const _elapsed = charging && chargeSince[b.id]!=null ? (Date.now()-chargeSince[b.id]) : null;
+    const _pctHTML = charging ? `<span class="dur">${_elapsed!=null?fmtDur(_elapsed):"charging"}</span>` : `${pct}<small>%</small>`;
+    const _barW = charging ? (_rest!=null?_rest:0) : pct;
     const _pts=sparkPoints(b.id), _vs=_pts.map(p=>p.v);
     const _mn=Math.min(..._vs), _mx=Math.max(..._vs);
     const smx=_mx.toFixed(1), smn=_mn.toFixed(1), smid=((_mn+_mx)/2).toFixed(1);
@@ -546,13 +571,13 @@ function renderCards(){
           <p class="st-meta">${b.model} · ${b.nominal}V</p>
         </div>
       </div>
-      <div class="c-pct"><span class="pct">${pct}<small>%</small></span></div>
+      <div class="c-pct"><span class="pct">${_pctHTML}</span></div>
       <div class="c-volt">
         <span class="volt">${b.v.toFixed(2)} <small>V</small></span>
         <div class="c-live"><b></b>${LIVE_MODE?"Live":"Simulated"}</div>
       </div>
       <div class="c-graph">
-        <div class="bar"><i style="width:${pct}%"></i></div>
+        <div class="bar"><i style="width:${_barW}%"></i></div>
         <div class="trend">
           <div class="trend-y"><span class="ymax">${smx}</span><span class="ymid">${smid}</span><span class="ymin">${smn}</span></div>
           <div class="trend-main">
@@ -583,12 +608,14 @@ function updateCards(){
   STACKERS.forEach(b=>{
     const c=cardEls[b.id]; if(!c)return;
     const pct=percentOf(b), charging=chargingNow(b), st=charging?CHARGE_ST:statusOf(pct);
+    const rest = charging ? restPctWhenCharging(b) : pct;
+    const elapsed = charging && chargeSince[b.id]!=null ? (Date.now()-chargeSince[b.id]) : null;
     c.card.classList.toggle("is-charging",charging);
     c.card.style.setProperty("--st-color",st.color);
     c.card.style.setProperty("--st-dim",st.dim);
-    c.pct.innerHTML=`${pct}<small>%</small>`;
+    c.pct.innerHTML = charging ? `<span class="dur">${elapsed!=null?fmtDur(elapsed):"charging"}</span>` : `${pct}<small>%</small>`;
     c.volt.innerHTML=`${b.v.toFixed(2)} <small>V</small>`;
-    c.bar.style.width=pct+"%";
+    c.bar.style.width=(charging?(rest!=null?rest:0):pct)+"%";
     c.pill.textContent=st.label;
     const pts=sparkPoints(b.id), vs=pts.map(p=>p.v), mn=Math.min(...vs), mx=Math.max(...vs);
     if(c.ymax)c.ymax.textContent=mx.toFixed(1);
@@ -756,6 +783,13 @@ function tickClock(){
   if(c) c.textContent=now.toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit",second:"2-digit"});
   const d=document.getElementById("dateNow");
   if(d) d.textContent=now.toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"});
+  // tick the charging-duration readout once a second
+  STACKERS.forEach(b=>{
+    const c=cardEls[b.id]; if(!c||!c.pct)return;
+    if(c.card.classList.contains("is-charging") && chargeSince[b.id]!=null){
+      const el=c.pct.querySelector(".dur"); if(el) el.textContent=fmtDur(now.getTime()-chargeSince[b.id]);
+    }
+  });
 }
 
 /* ---------- Demo simulation ---------- */
@@ -785,6 +819,10 @@ async function pollSupabase(){
     const byId={};
     rows.forEach(row=>{ (byId[row.stacker_id]=byId[row.stacker_id]||[]).push({t:new Date(row.created_at).getTime(), v:Number(row.voltage)}); });
     STACKERS.forEach(b=>{ const pts=byId[b.id]; if(pts&&pts.length){ SPARK[b.id]=pts; b.v=pts[pts.length-1].v; } });
+    for(const b of STACKERS){
+      if(chargingNow(b)){ if(chargeSince[b.id]==null) chargeSince[b.id]=await fetchChargeStart(b); }
+      else chargeSince[b.id]=null;
+    }
     updateCards();
   }catch(e){ console.warn("Supabase poll failed:",e); }
 }
