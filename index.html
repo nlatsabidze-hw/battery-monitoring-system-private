@@ -363,13 +363,22 @@ function statusOf(pct){
   return            {key:"crit", label:"Charge now",  color:"var(--crit)",dim:"var(--crit-dim)"};
 }
 
-/* ---------- History (generated for the demo) ---------- */
-const HIST = {};
+/* ---------- Live sparkline: last 6 minutes, one point per minute ----------
+   The node sends one reading per minute, so the window holds ~7 points and
+   the segments between them are straight (no sub-minute data). */
+const SPARK_MS=6*60000;   // window
+const SPARK_PTS=7;        // -6m .. now (demo)
+const SPARK={};
 STACKERS.forEach(b=>{
-  const arr=[]; let v=b.v+(Math.random()*0.4-0.1);
-  for(let i=0;i<28;i++){ v+=(Math.random()*0.12-0.06); arr.push(v); }
-  arr[arr.length-1]=b.v; HIST[b.id]=arr;
+  if(LIVE_MODE){ SPARK[b.id]=[{t:Date.now(), v:b.v}]; }
+  else { const a=[]; for(let k=0;k<SPARK_PTS;k++) a.push(b.v+(Math.random()*0.25-0.125)); a[SPARK_PTS-1]=b.v; SPARK[b.id]=a; }
 });
+// Returns the sparkline points as {t,v}. Demo builds synthetic minute marks.
+function sparkPoints(id){
+  if(LIVE_MODE) return SPARK[id]||[];
+  const a=SPARK[id]||[], now=Date.now(), n=a.length;
+  return a.map((v,i)=>({t:now-(n-1-i)*60000, v}));
+}
 
 /* ---------- 72h history (generated for the demo) ---------- */
 function genHist72(b){
@@ -423,26 +432,27 @@ function dueInfo(id){
 }
 
 /* ---------- Sparkline ---------- */
-function sparkline(arr,color){
-  const w=240,h=40,pad=3;
-  const mn=Math.min(...arr),mx=Math.max(...arr),rng=(mx-mn)||1;
-  const pts=arr.map((v,i)=>{
-    const x=pad+i/(arr.length-1)*(w-2*pad);
-    const y=h-pad-((v-mn)/rng)*(h-2*pad);
-    return [x,y];
-  });
-  const divs=6; let gmin="";
+function sparkline(points,color){
+  const w=240,h=40,pad=3,divs=6;
+  const now=Date.now(), tStart=now-SPARK_MS;
+  const vs=points.map(p=>p.v);
+  let mn=Math.min(...vs),mx=Math.max(...vs);
+  if(!isFinite(mn)){mn=0;mx=1;}
+  const rng=(mx-mn)||1;
+  const X=t=>pad+((t-tStart)/SPARK_MS)*(w-2*pad);
+  const Y=v=>h-pad-((v-mn)/rng)*(h-2*pad);
+  let gmin="";
   for(let k=0;k<=divs;k++){ const gx=(pad+(k/divs)*(w-2*pad)).toFixed(1);
     gmin+=`<line class="gmin" x1="${gx}" y1="${pad}" x2="${gx}" y2="${h-pad}" vector-effect="non-scaling-stroke"/>`; }
-  const d=pts.map((p,i)=>(i?"L":"M")+p[0].toFixed(1)+" "+p[1].toFixed(1)).join(" ");
-  const area=d+` L ${w-pad} ${h-pad} L ${pad} ${h-pad} Z`;
-  const last=pts[pts.length-1];
-  return `<svg class="spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true">
-    ${gmin}
-    <path d="${area}" fill="${color}" opacity="0.12"/>
-    <path d="${d}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>
-    <circle cx="${last[0].toFixed(1)}" cy="${last[1].toFixed(1)}" r="3" fill="${color}"/>
-  </svg>`;
+  const P=points.filter(p=>p.t>=tStart).map(p=>[X(p.t),Y(p.v)]);
+  let body="";
+  if(P.length>=2){
+    const d=P.map((p,i)=>(i?"L":"M")+p[0].toFixed(1)+" "+p[1].toFixed(1)).join(" ");
+    const area=d+` L ${P[P.length-1][0].toFixed(1)} ${h-pad} L ${P[0][0].toFixed(1)} ${h-pad} Z`;
+    body=`<path d="${area}" fill="${color}" opacity="0.12"/><path d="${d}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>`;
+  }
+  const last=P.length? `<circle cx="${P[P.length-1][0].toFixed(1)}" cy="${P[P.length-1][1].toFixed(1)}" r="3" fill="${color}"/>`:"";
+  return `<svg class="spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true">${gmin}${body}${last}</svg>`;
 }
 
 /* ---------- Render: Live (build once, then update values in place) ---------- */
@@ -452,7 +462,8 @@ function renderCards(){
   const sparkLabels=`<div class="spark-labels">${[6,5,4,3,2,1,0].map(a=>`<span>${a===0?"now":"-"+a+"m"}</span>`).join("")}</div>`;
   host.innerHTML=STACKERS.map(b=>{
     const pct=percentOf(b), st=statusOf(pct);
-    const _a=HIST[b.id], _mn=Math.min(..._a), _mx=Math.max(..._a);
+    const _pts=sparkPoints(b.id), _vs=_pts.map(p=>p.v);
+    const _mn=Math.min(..._vs), _mx=Math.max(..._vs);
     const smx=_mx.toFixed(1), smn=_mn.toFixed(1), smid=((_mn+_mx)/2).toFixed(1);
     return `<article class="card" id="card-${b.id}" style="--st-color:${st.color};--st-dim:${st.dim}">
       <div class="c-name">
@@ -472,7 +483,7 @@ function renderCards(){
         <div class="trend">
           <div class="trend-y"><span class="ymax">${smx}</span><span class="ymid">${smid}</span><span class="ymin">${smn}</span></div>
           <div class="trend-main">
-            ${sparkline(HIST[b.id],st.color)}
+            ${sparkline(_pts,st.color)}
             ${sparkLabels}
           </div>
         </div>
@@ -505,12 +516,12 @@ function updateCards(){
     c.volt.innerHTML=`${b.v.toFixed(2)} <small>V</small>`;
     c.bar.style.width=pct+"%";
     c.pill.textContent=st.label;
-    const arr=HIST[b.id], mn=Math.min(...arr), mx=Math.max(...arr);
+    const pts=sparkPoints(b.id), vs=pts.map(p=>p.v), mn=Math.min(...vs), mx=Math.max(...vs);
     if(c.ymax)c.ymax.textContent=mx.toFixed(1);
     if(c.ymid)c.ymid.textContent=((mn+mx)/2).toFixed(1);
     if(c.ymin)c.ymin.textContent=mn.toFixed(1);
     const spark=c.graph.querySelector(".spark");
-    if(spark) spark.outerHTML=sparkline(arr,st.color);
+    if(spark) spark.outerHTML=sparkline(pts,st.color);
   });
 }
 
@@ -674,11 +685,11 @@ function tickClock(){
 /* ---------- Demo simulation ---------- */
 function simulate(){
   STACKERS.forEach(b=>{
-    b.v += (Math.random()*0.06-0.03);           // small noise
+    b.v += (Math.random()*0.06-0.03);
     const pct=percentOf(b);
-    if(pct<8)  b.v += 0.05;                      // keep it from drifting too low
+    if(pct<8)  b.v += 0.05;
     if(pct>98) b.v -= 0.05;
-    const arr=HIST[b.id]; arr.push(b.v); if(arr.length>28)arr.shift();
+    const a=SPARK[b.id]; a.push(b.v); if(a.length>SPARK_PTS)a.shift();   // one point per (simulated) minute
   });
   updateCards();
 }
@@ -689,17 +700,15 @@ function simulate(){
    ============================================================ */
 async function pollSupabase(){
   try{
-    const r=await fetch(`${SUPABASE_URL}/rest/v1/readings?select=stacker_id,voltage,created_at&order=created_at.desc&limit=60`,{
+    const since=new Date(Date.now()-SPARK_MS).toISOString();
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/readings?created_at=gte.${encodeURIComponent(since)}&select=stacker_id,voltage,created_at&order=created_at.asc`,{
       headers:{ apikey:SUPABASE_KEY, Authorization:"Bearer "+SUPABASE_KEY }
     });
     const rows=await r.json();
-    const seen=new Set();
-    rows.forEach(row=>{
-      if(seen.has(row.stacker_id))return; seen.add(row.stacker_id);
-      const b=STACKERS.find(s=>s.id===row.stacker_id);
-      if(b){ b.v=Number(row.voltage);
-        const a=HIST[b.id]; a.push(b.v); if(a.length>28)a.shift(); }
-    });
+    if(!Array.isArray(rows))return;
+    const byId={};
+    rows.forEach(row=>{ (byId[row.stacker_id]=byId[row.stacker_id]||[]).push({t:new Date(row.created_at).getTime(), v:Number(row.voltage)}); });
+    STACKERS.forEach(b=>{ const pts=byId[b.id]; if(pts&&pts.length){ SPARK[b.id]=pts; b.v=pts[pts.length-1].v; } });
     updateCards();
   }catch(e){ console.warn("Supabase poll failed:",e); }
 }
@@ -822,8 +831,8 @@ function boot(){
   setView(h==="service"?"service":"live");
   tickClock(); setInterval(tickClock,1000);
 
-  if(LIVE_MODE){ pollSupabase(); setInterval(pollSupabase,5000); }
-  else{ setInterval(simulate,3000); }
+  if(LIVE_MODE){ pollSupabase(); setInterval(pollSupabase,15000); }
+  else{ setInterval(simulate,6000); }
 
   document.getElementById("footNote").innerHTML =
     LIVE_MODE
