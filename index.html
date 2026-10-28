@@ -246,6 +246,7 @@
   .m-chart .grid{stroke:var(--line);stroke-width:1}
   .m-stats{display:flex;gap:16px;flex-wrap:wrap;margin-top:14px;font-size:.82rem;color:var(--muted);font-family:var(--font-data)}
   .m-stats b{color:var(--fg);font-weight:600}
+  .m-loading{color:var(--muted);font-size:.85rem;text-align:center;padding:48px 0}
 </style>
 
 <header>
@@ -714,48 +715,76 @@ async function postService(id,rec){
 }
 
 /* ---------- Detail chart (modal) ---------- */
-function drawChart(values,color){
-  const W=900,H=272,ml=46,mr=16,mt=16,mb=44,pw=W-ml-mr,ph=H-mt-mb,n=values.length;
-  let mn=Math.min(...values),mx=Math.max(...values);
+function drawChart(points,rangeHours,color){
+  const W=900,H=272,ml=46,mr=16,mt=16,mb=44,pw=W-ml-mr,ph=H-mt-mb;
+  const now=Date.now(), tStart=now-rangeHours*3600000, span=rangeHours*3600000;
+  const vs=points.map(p=>p.v);
+  let mn=Math.min(...vs),mx=Math.max(...vs);
+  if(!isFinite(mn)){mn=0;mx=1;}
+  if(mn===mx){mn-=0.5;mx+=0.5;}
   const pad=(mx-mn)*0.15||0.5; mn-=pad; mx+=pad;
-  const X=j=>ml+(n<=1?0:j/(n-1))*pw, Y=v=>mt+ph-((v-mn)/(mx-mn))*ph;
+  const X=t=>ml+((t-tStart)/span)*pw, Y=v=>mt+ph-((v-mn)/(mx-mn))*ph;
   let minor="";
-  for(let j=0;j<n;j++){ const x=X(j); minor+=`<line class="grid-minor" x1="${x.toFixed(1)}" y1="${mt}" x2="${x.toFixed(1)}" y2="${(mt+ph).toFixed(1)}"/>`; }
+  for(let h=0;h<=rangeHours;h++){ const x=X(now-h*3600000); minor+=`<line class="grid-minor" x1="${x.toFixed(1)}" y1="${mt}" x2="${x.toFixed(1)}" y2="${(mt+ph).toFixed(1)}"/>`; }
   let grid="",ylab="";
   for(let k=0;k<=4;k++){
     const val=mn+(mx-mn)*k/4, y=Y(val);
     grid+=`<line class="grid" x1="${ml}" y1="${y.toFixed(1)}" x2="${W-mr}" y2="${y.toFixed(1)}"/>`;
     ylab+=`<text x="${ml-8}" y="${(y+4).toFixed(1)}" text-anchor="end">${val.toFixed(1)}</text>`;
   }
-  const range=n-1; const lstep=Math.max(1,Math.ceil(range/24)); let xlab="";
-  for(let ago=0; ago<=range; ago+=lstep){
-    const x=X(range-ago);
+  const lstep=Math.max(1,Math.ceil(rangeHours/24)); let xlab="";
+  for(let ago=0; ago<=rangeHours; ago+=lstep){
+    const x=X(now-ago*3600000);
     xlab+=`<text class="xl" x="${x.toFixed(1)}" y="${(H-26).toFixed(1)}" text-anchor="middle">${ago===0?"now":"-"+ago+"h"}</text>`;
   }
   xlab+=`<text class="xcap" x="${(ml+pw/2).toFixed(1)}" y="${(H-8).toFixed(1)}" text-anchor="middle">hours ago</text>`;
-  const pts=values.map((v,j)=>[X(j),Y(v)]);
-  const d=pts.map((p,i)=>(i?"L":"M")+p[0].toFixed(1)+" "+p[1].toFixed(1)).join(" ");
-  const area=d+` L ${X(n-1).toFixed(1)} ${(mt+ph).toFixed(1)} L ${ml} ${(mt+ph).toFixed(1)} Z`;
-  const last=pts[pts.length-1];
+  const P=points.map(p=>[X(p.t),Y(p.v)]);
+  let body="";
+  if(P.length>=2){
+    const d=P.map((p,i)=>(i?"L":"M")+p[0].toFixed(1)+" "+p[1].toFixed(1)).join(" ");
+    const area=d+` L ${P[P.length-1][0].toFixed(1)} ${(mt+ph).toFixed(1)} L ${P[0][0].toFixed(1)} ${(mt+ph).toFixed(1)} Z`;
+    body=`<path d="${area}" fill="${color}" opacity="0.1"/><path d="${d}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+  }
+  const last=P.length?`<circle cx="${P[P.length-1][0].toFixed(1)}" cy="${P[P.length-1][1].toFixed(1)}" r="3.5" fill="${color}"/>`:"";
   return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Voltage over time">
-    ${minor}
-    ${grid}
-    <path d="${area}" fill="${color}" opacity="0.1"/>
-    <path d="${d}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
-    <circle cx="${last[0].toFixed(1)}" cy="${last[1].toFixed(1)}" r="3.5" fill="${color}"/>
-    ${ylab}${xlab}
+    ${minor}${grid}${body}${last}${ylab}${xlab}
   </svg>`;
 }
 let modalState={id:null,range:24};
-function renderModal(){
+let modalReq=0;
+async function renderModal(){
   const b=STACKERS.find(s=>s.id===modalState.id); if(!b)return;
-  const vals=HIST72[b.id].slice(-modalState.range);
   const st=statusOf(percentOf(b));
+  const reqId=++modalReq;
   document.getElementById("mTitle").textContent=`${b.name} · ${b.model}`;
-  document.getElementById("mChart").innerHTML=drawChart(vals,st.color);
-  const mn=Math.min(...vals),mx=Math.max(...vals),now=vals[vals.length-1];
-  document.getElementById("mStats").innerHTML=
-    `<span>Now <b>${now.toFixed(2)} V</b></span><span>Min <b>${mn.toFixed(2)} V</b></span><span>Max <b>${mx.toFixed(2)} V</b></span><span>Swing <b>${(mx-mn).toFixed(2)} V</b></span>`;
+  const chartEl=document.getElementById("mChart"), statsEl=document.getElementById("mStats");
+  let pts;
+  if(LIVE_MODE){
+    chartEl.innerHTML=`<p class="m-loading">Loading…</p>`; statsEl.innerHTML="";
+    pts=await fetchHistory(b.id, modalState.range);
+    if(reqId!==modalReq) return;            // a newer request superseded this one
+  }else{
+    const now=Date.now(), vals=HIST72[b.id], n=vals.length, start=Math.max(0,n-modalState.range);
+    pts=[]; for(let j=start;j<n;j++) pts.push({t:now-(n-1-j)*3600000, v:vals[j]});
+  }
+  if(!pts||!pts.length){
+    chartEl.innerHTML=`<p class="m-loading">No readings yet for this range.</p>`; statsEl.innerHTML="";
+    return;
+  }
+  chartEl.innerHTML=drawChart(pts, modalState.range, st.color);
+  const vs=pts.map(p=>p.v), mn=Math.min(...vs), mx=Math.max(...vs), nv=pts[pts.length-1].v;
+  statsEl.innerHTML=
+    `<span>Now <b>${nv.toFixed(2)} V</b></span><span>Min <b>${mn.toFixed(2)} V</b></span><span>Max <b>${mx.toFixed(2)} V</b></span><span>Swing <b>${(mx-mn).toFixed(2)} V</b></span>`;
+}
+async function fetchHistory(id, hours){
+  try{
+    const since=new Date(Date.now()-hours*3600000).toISOString();
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/readings?stacker_id=eq.${id}&created_at=gte.${encodeURIComponent(since)}&select=voltage,created_at&order=created_at.asc`,{
+      headers:{ apikey:SUPABASE_KEY, Authorization:"Bearer "+SUPABASE_KEY }
+    });
+    const rows=await r.json();
+    return Array.isArray(rows)? rows.map(x=>({t:new Date(x.created_at).getTime(), v:Number(x.voltage)})) : [];
+  }catch(e){ console.warn("history fetch failed:",e); return []; }
 }
 function openModal(id){
   modalState={id:+id,range:24};
